@@ -1,0 +1,198 @@
+SELECT
+  Location,
+  Date, 
+  total_cases,
+  new_cases,
+  total_deaths,
+  population
+FROM
+  `sublime-lodge-405119.Portfolio.COVID_Deaths`
+WHERE
+  continent IS NOT Null
+ORDER BY 
+  1,2
+
+  --Looking at Total Cases vs Total Deaths 
+
+SELECT
+  Location,
+  Date, 
+  total_cases,
+  total_deaths,
+  (total_deaths/total_cases)*100 AS death_percentage
+FROM
+  `sublime-lodge-405119.Portfolio.COVID_Deaths`
+WHERE
+  location = 'United States'
+ORDER BY
+1,2
+
+--Total Cases vs Population 
+
+SELECT
+  Location,
+  Date, 
+  total_cases,
+  population,
+  (total_cases/population)*100 AS percent_infected
+FROM
+  `sublime-lodge-405119.Portfolio.COVID_Deaths`
+WHERE
+  location = 'United States'
+ORDER BY
+  1,2 
+
+-- Countries with Highest Infection Rate compares to Population
+SELECT
+  location,
+  population, 
+  MAX(total_cases) AS Highest_Infection_Count,
+  MAX((total_cases/population))*100 AS percent_infected,
+FROM
+  `sublime-lodge-405119.Portfolio.COVID_Deaths`
+--WHERE location = 'United States'
+GROUP BY
+  population,
+  location
+ORDER BY
+  percent_infected DESC
+
+  --Countries with Highest Death Count per Pop
+
+SELECT
+  location,
+  population, 
+  MAX(cast(total_deaths AS INT)) AS total_deaths,
+  MAX((total_deaths/population))*100 AS percent_deaths,
+FROM
+  `sublime-lodge-405119.Portfolio.COVID_Deaths`
+--WHERE location = 'United States'
+GROUP BY
+  population,
+  location
+ORDER BY
+  percent_deaths DESC
+
+SELECT
+  location, 
+  MAX(cast(total_deaths AS INT)) AS total_deaths,
+FROM
+  `sublime-lodge-405119.Portfolio.COVID_Deaths`
+WHERE
+  continent IS NOT Null
+GROUP BY
+  location
+ORDER BY
+  total_deaths DESC
+
+SELECT
+  location,
+  population, 
+  MAX(cast(total_deaths AS INT)) AS total_deaths,
+  MAX((total_deaths/population))*100 AS percent_deaths,
+FROM
+  `sublime-lodge-405119.Portfolio.COVID_Deaths`
+WHERE
+  continent IS NOT Null
+GROUP BY
+  population,
+  location
+ORDER BY
+  percent_deaths DESC
+
+--Continents with highest death count per pop
+SELECT
+  continent, 
+  MAX(cast(total_deaths AS INT)) AS total_deaths,
+FROM
+  `sublime-lodge-405119.Portfolio.COVID_Deaths`
+WHERE
+  continent IS NOT Null
+GROUP BY
+  continent
+ORDER BY
+  total_deaths DESC
+
+--Correct numbers
+SELECT
+  location, 
+  MAX(cast(total_deaths AS INT)) AS total_deaths,
+FROM
+  `sublime-lodge-405119.Portfolio.COVID_Deaths`
+WHERE
+  continent IS NOT Null
+GROUP BY
+  location
+ORDER BY
+  total_deaths DESC
+
+--Total Pop vs Vaccinations 
+SELECT
+  continent,
+  date,
+  location, 
+  population,
+  new_vaccinations,
+  SUM(new_vaccinations) OVER (PARTITION BY location ORDER BY location,date) AS Rolling_People_Vaxed
+FROM
+  `sublime-lodge-405119.Portfolio.COVID_Deaths`
+WHERE
+  continent IS NOT NULL
+ORDER BY
+2,3 desc
+
+--CTE
+
+WITH PopVsVax (Continent, Location, Date, Population, New_Vaccinations, Rolling_People_Vaxed) 
+AS
+(
+  SELECT
+  continent,
+  date,
+  location, 
+  population,
+  new_vaccinations,
+  SUM(new_vaccinations) OVER (PARTITION BY location ORDER BY location,date) AS Rolling_People_Vaxed
+FROM
+  `sublime-lodge-405119.Portfolio.COVID_Deaths`
+WHERE
+  continent IS NOT NULL
+ORDER BY
+2,3 desc
+)
+SELECT
+  *, 
+  (Rolling_People_Vaxed/population)*100
+FROM
+  PopsVsVax
+
+--Temp Table
+
+DROP TABLE IF exists PercentPopulationVaccinated
+CREATE TABLE #PercentPopulationVaccinated
+(
+  Continent nvarchar(255), 
+  Location nvarchar(255),
+  Date datetime,
+  Population numeric, 
+  new_vaccinations numeric, 
+  Rolling_People_Vaxed numeric
+)
+INSERT INTO #PercentPopulationVaccinated
+SELECT
+  continent,
+  date,
+  location, 
+  population,
+  new_vaccinations,
+  SUM(new_vaccinations) OVER (PARTITION BY location ORDER BY location,date) AS Rolling_People_Vaxed
+FROM
+  `sublime-lodge-405119.Portfolio.COVID_Deaths`
+WHERE
+  continent IS NOT NULL
+
+SELECT
+  *, 
+  (Rolling_People_Vaxed/population)*100
+FROM
+  PercentPopulationVaccinated
